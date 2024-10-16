@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { proving } from '@iden3/js-jwz';
+import { proving } from "@iden3/js-jwz";
 import {
   BjjProvider,
   CredentialStorage,
@@ -45,20 +44,32 @@ import {
   CredentialStatusPublisherRegistry,
   Iden3SmtRhsCredentialStatusPublisher,
   Iden3OnchainSmtCredentialStatusPublisher,
-  OnChainRevocationStorage
-} from '@wakeuplabs/opid-sdk';
-import path from 'path';
-import { MongoDataSourceFactory, MerkleTreeMongodDBStorage } from '@0xpolygonid/mongo-storage';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { MongoClient, Db } from 'mongodb';
-import { ethers } from 'ethers';
-import { CIRCUITS_FOLDER, MONGO_DB_CONNECTION, RPC_URL, STATE_CONTRACT_ADDRESS, RHS_CHAIN_ID, MONGO_DB_TABLE_NAME, WALLET_KEY, RHS_ADDRESS } from './config';
+  OnChainRevocationStorage,
+} from "@wakeuplabs/opid-sdk";
+import path from "path";
+import {
+  MongoDataSourceFactory,
+  MerkleTreeMongodDBStorage,
+} from "@0xpolygonid/mongo-storage";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoClient, Db } from "mongodb";
+import { ethers } from "ethers";
+import {
+  CIRCUITS_FOLDER,
+  MONGO_DB_CONNECTION,
+  RPC_URL,
+  STATE_CONTRACT_ADDRESS,
+  MONGO_DB_TABLE_NAME,
+  WALLET_KEY,
+  RHS_ADDRESS,
+  CHAIN_ID,
+} from "../config";
 
 const conf: EthConnectionConfig = {
   ...defaultEthConnectionConfig,
   contractAddress: STATE_CONTRACT_ADDRESS,
   url: RPC_URL,
-  chainId: RHS_CHAIN_ID
+  chainId: CHAIN_ID,
 };
 
 export function initInMemoryDataStorage(): IDataStorage {
@@ -74,7 +85,7 @@ export function initInMemoryDataStorage(): IDataStorage {
     ),
     mt: new InMemoryMerkleTreeStorage(40),
 
-    states: new EthStateStorage(conf)
+    states: new EthStateStorage(conf),
   };
 
   return dataStorage;
@@ -92,14 +103,14 @@ export async function initMongoDataStorage(): Promise<IDataStorage> {
 
   const dataStorage = {
     credential: new CredentialStorage(
-      await MongoDataSourceFactory<W3CCredential>(db, 'credentials')
+      await MongoDataSourceFactory<W3CCredential>(db, "credentials")
     ),
     identity: new IdentityStorage(
-      await MongoDataSourceFactory<Identity>(db, 'identity'),
-      await MongoDataSourceFactory<Profile>(db, 'profile')
+      await MongoDataSourceFactory<Identity>(db, "identity"),
+      await MongoDataSourceFactory<Profile>(db, "profile")
     ),
     mt: await MerkleTreeMongodDBStorage.setup(db, 40),
-    states: new EthStateStorage(conf)
+    states: new EthStateStorage(conf),
   };
 
   return dataStorage as unknown as IDataStorage;
@@ -114,13 +125,17 @@ export async function initIdentityWallet(
   const kms = new KMS();
   kms.registerKeyProvider(KmsKeyType.BabyJubJub, bjjProvider);
 
-  const credentialStatusPublisherRegistry = new CredentialStatusPublisherRegistry();
+  const credentialStatusPublisherRegistry =
+    new CredentialStatusPublisherRegistry();
   credentialStatusPublisherRegistry.register(
     CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
     new Iden3SmtRhsCredentialStatusPublisher()
   );
-  if (!WALLET_KEY) throw new Error('wallet key not configured');
-  const ethSigner = new ethers.Wallet(WALLET_KEY, dataStorage.states.getRpcProvider());
+  if (!WALLET_KEY) throw new Error("wallet key not configured");
+  const ethSigner = new ethers.Wallet(
+    WALLET_KEY,
+    dataStorage.states.getRpcProvider()
+  );
   if (RHS_ADDRESS)
     credentialStatusPublisherRegistry.register(
       CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
@@ -130,7 +145,7 @@ export async function initIdentityWallet(
     );
 
   return new IdentityWallet(kms, dataStorage, credentialWallet, {
-    credentialStatusPublisherRegistry
+    credentialStatusPublisherRegistry,
   });
 }
 
@@ -139,33 +154,45 @@ export async function initInMemoryDataStorageAndWallets() {
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
 
-  const identityWallet = await initIdentityWallet(dataStorage, credentialWallet, memoryKeyStore);
+  const identityWallet = await initIdentityWallet(
+    dataStorage,
+    credentialWallet,
+    memoryKeyStore
+  );
 
   return {
     dataStorage,
     credentialWallet,
-    identityWallet
+    identityWallet,
   };
 }
 
-//TODO: fix mongo data storage
 export async function initMongoDataStorageAndWallets() {
   const dataStorage = await initMongoDataStorage();
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
 
-  const identityWallet = await initIdentityWallet(dataStorage, credentialWallet, memoryKeyStore);
+  const identityWallet = await initIdentityWallet(
+    dataStorage,
+    credentialWallet,
+    memoryKeyStore
+  );
 
   return {
     dataStorage,
     credentialWallet,
-    identityWallet
+    identityWallet,
   };
 }
 
-export async function initCredentialWallet(dataStorage: IDataStorage): Promise<CredentialWallet> {
+export async function initCredentialWallet(
+  dataStorage: IDataStorage
+): Promise<CredentialWallet> {
   const resolvers = new CredentialStatusResolverRegistry();
-  resolvers.register(CredentialStatusType.SparseMerkleTreeProof, new IssuerResolver());
+  resolvers.register(
+    CredentialStatusType.SparseMerkleTreeProof,
+    new IssuerResolver()
+  );
   resolvers.register(
     CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
     new RHSResolver(dataStorage.states)
@@ -174,14 +201,17 @@ export async function initCredentialWallet(dataStorage: IDataStorage): Promise<C
     CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
     new OnChainResolver([conf])
   );
-  resolvers.register(CredentialStatusType.Iden3commRevocationStatusV1, new AgentResolver());
+  resolvers.register(
+    CredentialStatusType.Iden3commRevocationStatusV1,
+    new AgentResolver()
+  );
 
   return new CredentialWallet(dataStorage, resolvers);
 }
 
 export async function initCircuitStorage(): Promise<ICircuitStorage> {
   return new FSCircuitStorage({
-    dirname: path.join(__dirname, CIRCUITS_FOLDER)
+    dirname: path.join(__dirname, "../../circuits"),
   });
 }
 export async function initProofService(
@@ -190,9 +220,15 @@ export async function initProofService(
   stateStorage: IStateStorage,
   circuitStorage: ICircuitStorage
 ): Promise<ProofService> {
-  return new ProofService(identityWallet, credentialWallet, circuitStorage, stateStorage, {
-    ipfsGatewayURL: 'https://ipfs.io'
-  });
+  return new ProofService(
+    identityWallet,
+    credentialWallet,
+    circuitStorage,
+    stateStorage,
+    {
+      ipfsGatewayURL: "https://ipfs.io",
+    }
+  );
 }
 
 export async function initPackageManager(
@@ -203,22 +239,23 @@ export async function initPackageManager(
   const authInputsHandler = new DataPrepareHandlerFunc(prepareFn);
 
   const verificationFn = new VerificationHandlerFunc(stateVerificationFn);
-  const mapKey = proving.provingMethodGroth16AuthV2Instance.methodAlg.toString();
+  const mapKey =
+    proving.provingMethodGroth16AuthV2Instance.methodAlg.toString();
   const verificationParamMap: Map<string, VerificationParams> = new Map([
     [
       mapKey,
       {
         key: circuitData.verificationKey!,
-        verificationFn
-      }
-    ]
+        verificationFn,
+      },
+    ],
   ]);
 
   const provingParamMap: Map<string, ProvingParams> = new Map();
   provingParamMap.set(mapKey, {
     dataPreparer: authInputsHandler,
     provingKey: circuitData.provingKey!,
-    wasm: circuitData.wasm!
+    wasm: circuitData.wasm!,
   });
 
   const mgr: IPackageManager = new PackageManager();
