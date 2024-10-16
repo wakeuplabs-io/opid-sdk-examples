@@ -36,8 +36,10 @@
    THIRD_PARTY_CONTRACT_ADDRESS=""
    # third party key in hex format with matic balance
    THIRD_PARTY_WALLET_KEY=""
-   # reverse hash service url or contract address if onchain rhs
+   # reverse hash service url if offchain rhs
    RHS_URL=""
+   # reverse hash service contract address if onchain rhs
+   RHS_ADDRESS=""
    # 'ERC20Verifier' or 'SelectiveDisclosureVerifier' or 'UniversalVerifier'
    ERC20_VERIFIER="ERC20Verifier"
    # Universal Verifier (0x102eB31F9f2797e8A84a79c01FFd9aF7D1d9e556) or ERC20 Verifier (0xca6bfa62791d3c7c7ed1a5b320018c1C1dAC89Ee)  or SelectiveDisclosureVerifier (0x9001f41Fbe63fF09635Fe8Dfc532035BA34348B9)
@@ -83,7 +85,7 @@ npm run start
 
 ## License
 
-js-sdk-examples is part of the 0xPolygonID project copyright 2024 ZKID Labs AG
+opid-sdk-examples are part of Wakeup Labs opid-sdk, developed on top of PrivadoIDs js-sdk, project copyright 2024 ZKID Labs AG
 
 This project is licensed under either of
 
